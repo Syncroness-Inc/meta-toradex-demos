@@ -239,7 +239,7 @@ BOOTDD_VOLUME_ID="boot"
 
 # Note: Increasing this will kill the NVFS.  
 # 1 GiB
-ROOTFS_SIZE=$(expr 1024 \* 1000 \* 2)
+ROOTFS_SIZE=$(expr 1024 \* 1200 \* 2)
 ROOTFS_END=$(expr ${ROOTFS_START} \+ ${ROOTFS_SIZE} \- 1)
 
 NVFS_START=$(expr ${ROOTFS_END} \+ 1)
