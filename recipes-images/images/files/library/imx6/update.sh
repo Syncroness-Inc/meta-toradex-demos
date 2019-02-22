@@ -5,6 +5,7 @@
 
 # exit on error
 set -e
+set -v
 
 Flash()
 {
@@ -131,7 +132,7 @@ case "$MODTYPE" in
 		# assumed minimal eMMC size [in sectors of 512]
 		EMMC_SIZE=$(expr 1024 \* 3500 \* 2)
 		IMAGEFILE=root.ext4
-		KERNEL_DEVICETREE="%kernel_device_trees%"
+		KERNEL_DEVICETREE="imx6q-apalis-eval.dtb imx6q-apalis-ixora.dtb imx6q-apalis-ixora-v1.1.dtb"
 		LOCPATH="`pwd`/imx_flash"
 		OUT_DIR="$OUT_DIR/apalis_imx6"
 		;;
@@ -139,7 +140,7 @@ case "$MODTYPE" in
 		# assumed minimal eMMC size [in sectors of 512]
 		EMMC_SIZE=$(expr 1024 \* 3500 \* 2)
 		IMAGEFILE=root.ext4
-		KERNEL_DEVICETREE="%kernel_device_trees%"
+		KERNEL_DEVICETREE="imx6q-apalis-eval.dtb imx6q-apalis-ixora.dtb imx6q-apalis-ixora-v1.1.dtb"
 		LOCPATH="`pwd`/imx_flash"
 		OUT_DIR="$OUT_DIR/colibri_imx6"
 		;;
@@ -221,10 +222,10 @@ sudo mkdir -p "$OUT_DIR"
 #
 #            4MiB               16MiB           SDIMG_ROOTFS
 # <-----------------------> <----------> <---------------------->
-#  ------------------------ ------------ ------------------------
-# | IMAGE_ROOTFS_ALIGNMENT | BOOT_SPACE | ROOTFS_SIZE            |
-#  ------------------------ ------------ ------------------------
-# ^                        ^            ^                        ^
+#  ------------------------ ------------ ------------- ----------
+# | IMAGE_ROOTFS_ALIGNMENT | BOOT_SPACE | ROOTFS_SIZE | NVFS     |
+#  ------------------------ ------------ ------------- ----------
+# ^                        ^            ^             ^          ^
 # |                        |            |                        |
 # 0                      4MiB      4MiB + 16MiB              EMMC_SIZE
 
@@ -236,6 +237,15 @@ ROOTFS_START=$(expr 20480 \* 2)
 # Boot partition volume id
 BOOTDD_VOLUME_ID="boot"
 
+# Note: Increasing this will kill the NVFS.  
+# 1 GiB
+ROOTFS_SIZE=$(expr 1024 \* 1000 \* 2)
+ROOTFS_END=$(expr ${ROOTFS_START} \+ ${ROOTFS_SIZE} \- 1)
+
+NVFS_START=$(expr ${ROOTFS_END} \+ 1)
+NVFS_END=$(expr ${EMMC_SIZE} \- 1)
+
+
 echo ""
 echo "Creating MBR file and do the partitioning"
 # Initialize a sparse file
@@ -244,7 +254,8 @@ ${PARTED} -s ${BINARIES}/mbr.bin mklabel msdos
 ${PARTED} -a none -s ${BINARIES}/mbr.bin unit s mkpart primary fat32 ${BOOT_START} $(expr ${ROOTFS_START} - 1 )
 # the partition spans to the end of the disk, even though the fs size will be smaller
 # on the target the fs is then grown to the full size
-${PARTED} -a none -s ${BINARIES}/mbr.bin unit s mkpart primary ext4 ${ROOTFS_START} $(expr ${EMMC_SIZE} \- ${ROOTFS_START} \- 1)
+${PARTED} -a none -s ${BINARIES}/mbr.bin unit s mkpart primary ext4 ${ROOTFS_START} ${ROOTFS_END}
+${PARTED} -a none -s ${BINARIES}/mbr.bin unit s mkpart primary ext4 ${NVFS_START} ${NVFS_END}
 ${PARTED} -s ${BINARIES}/mbr.bin unit s print 
 # get the size of the VFAT partition
 BOOT_BLOCKS=$(LC_ALL=C ${PARTED} -s ${BINARIES}/mbr.bin unit b print \
