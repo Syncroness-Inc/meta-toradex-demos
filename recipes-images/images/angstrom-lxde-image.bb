@@ -37,7 +37,7 @@ CONMANPKGS ?= "connman connman-client connman-gnome"
 #deploy the OpenGL ES headers to the sysroot
 DEPENDS_append_tegra = " nvsamples"
 
-IMAGE_BROWSER = "firefox"
+IMAGE_BROWSER = "chromium-x11"
 #keep the rootfs size small
 IMAGE_BROWSER_colibri-imx6ull = ""
 IMAGE_BROWSER_colibri-vf = ""
